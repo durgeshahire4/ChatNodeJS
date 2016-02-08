@@ -14,6 +14,8 @@
     </style>
   </head>
   <body>
+    <div id="rooms"></div>
+    <div id="conversation"></div>
     <ul id="messages"></ul>
     <form action="">
       <input id="m" autocomplete="off" /><button>Send</button>
@@ -22,15 +24,46 @@
 	   <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
 	<script>
 	  var socket = io();
+
+    // on connection to server, ask for user's name with an anonymous callback
+    socket.on('connect', function(){
+      // call the server-side function 'adduser' and send one parameter (value of prompt)
+      socket.emit('adduser', prompt("What's your name?"));
+    });
+
+    
+      // listener, whenever the server emits 'updatechat', this updates the chat body
+  socket.on('updatechat', function (username, data) {
+    $('#conversation').append('<b>'+username + ':</b> ' + data + '<br>');
+  });
+
+
+    // listener, whenever the server emits 'updaterooms', this updates the room the client is in
+  socket.on('updaterooms', function(rooms, current_room) {
+    $('#rooms').empty();
+    $.each(rooms, function(key, value) {
+      if(value == current_room){
+        $('#rooms').append('<div>' + value + '</div>');
+      }
+      else {
+        $('#rooms').append('<div><a href="#" onclick="switchRoom(\''+value+'\')">' + value + '</a></div>');
+      }
+    });
+  });
+
+  function switchRoom(room){
+    socket.emit('switchRoom', room);
+  }
+
+
 	  $('form').submit(function(){
-		socket.emit('chat message', $('#m').val());
+		 var message = $('#m').val();
+    // tell server to execute 'sendchat' and send along one parameter
+      socket.emit('sendchat', message);
 		$('#m').val('');
 		return false;
 	 });
 	 
-	  socket.on('chat message', function(msg){
-    $('#messages').append($('<li>').text(msg));
-  });
 	</script>
   </body>
 </html>
