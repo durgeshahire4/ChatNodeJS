@@ -14,16 +14,21 @@
     </style>
   </head>
   <body>
-    <div style="width:900px;float:left">
-      <h2 id="title"></h2>
-      <ul id="conversation"></ul>
+    <div style="width:100%">
+      <div style="width:60%;float:left">
+        <h2 id="title"></h2>
+        <ul id="conversation"></ul>
+      </div>
+      <div style="width:30%; float:right">
+        <input type="text" class="add-new-room" style="width:150px; height:20px"/> 
+        <input type="button" value="Add Room" onclick="addRoom()" />
+        <ul id="rooms"></ul>
+      </hr></br></br>
+        <input type="text" class="add-new-people" style="width:150px; height:20px"/> 
+        <input type="button" value="Add People" onclick="addPeople()" />
+        <ul id="peoples"></ul>
+      </div>
     </div>
-    <div style="width:400px; float:right">
-      <input type="text" class="add-new-room" style="width:150px; height:20px"/> 
-      <input type="button" value="Add Room" onclick="addRoom()" />
-      <ul id="rooms"></ul>
-    </div>
-    
     <form action="">
       <input id="m" autocomplete="off" /><button>Send</button>
     </form>
@@ -35,7 +40,7 @@
     // on connection to server, ask for user's name with an anonymous callback
     socket.on('connect', function(){
       // call the server-side function 'adduser' and send one parameter (value of prompt)
-      socket.emit('adduser', prompt("What's your name?"));
+      socket.emit('adduser', 'Duggu');
     });
 
     
@@ -50,23 +55,53 @@
   });
 
 
-    // listener, whenever the server emits 'updaterooms', this updates the room the client is in
-  socket.on('updaterooms', function(rooms, current_room) {
-    $('#title').text(current_room.toUpperCase());
-     $('#rooms').html('');
+    // listener, whenever the server emits 'updateChatRooms', this updates the room the client is in
+  socket.on('updateChatRooms', function(ChatRooms, current_chat) {
+    $('#title').text(current_chat.label.toUpperCase());   
+    appendRooms(ChatRooms.rooms, current_chat);
+    appendPeoples(ChatRooms.peoples, current_chat);
+  });
+
+  function appendRooms(rooms, current_chat) {
+    $('#rooms').html('');
     $.each(rooms, function(key, value) {
-      if(value == current_room){
+      if(value == current_chat.label){
         $('#rooms').append('<li>' + value + '</li>');
       }
       else {
         $('#rooms').append('<li><a href="#" onclick="switchRoom(\''+value+'\')">' + value + '</a></li>');
       }
     });
-  });
+  }
+
+  function appendPeoples(peoples, current_chat){
+    $('#peoples').html('');
+    $.each(peoples, function(key, value) {
+      if(value == current_chat.label){
+        $('#peoples').append('<li>' + value + '</li>');
+      }
+      else {
+        $('#peoples').append('<li><a href="#" onclick="switchPeople(\''+value+'\')">' + value + '</a></li>');
+      }
+    });
+  }
 
   function switchRoom(room){
     $('#conversation').html('');
-    socket.emit('switchRoom', room);
+    var roomSelect = {
+      label: room,
+      type: 'room'
+    }
+    socket.emit('switchChats', roomSelect);
+  }
+
+  function switchPeople(people){
+    $('#conversation').html('');
+    var peopleSelect = {
+      label: people,
+      type: 'people'
+    };
+    socket.emit('switchChats', peopleSelect);
   }
 
   function addRoom() {
@@ -75,8 +110,16 @@
       socket.emit('addroom', roomName);
       $('.add-new-room').val('');
     }
-
   }
+
+  function addPeople() {
+    var peopleName = $('.add-new-people').val().trim();
+    if(peopleName) {
+      socket.emit('addpeople', peopleName);
+      $('.add-new-people').val('');
+    }
+  }
+
 
 
 	  $('form').submit(function(){
